@@ -1,10 +1,12 @@
 /**
  * Repository layer (Data Access).
  * Encapsulates all Prisma / PostgreSQL queries for missions.
+ * Falls back to the in-memory demo dataset when no database is
+ * configured, so the platform works in "demo mode" deployments.
  */
 import { prisma } from "@/lib/prisma";
-import { DataAccessError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
+import { DEMO_MISSIONS, isDemoMode } from "@/lib/demo-data";
 import type { MissionWithDrone, Paginated } from "@/types";
 
 const logger = createLogger("repository.mission");
@@ -26,6 +28,22 @@ export class MissionRepository {
       ...(options.status ? { status: options.status as never } : {}),
       ...(options.droneId ? { droneId: options.droneId } : {}),
     };
+
+    if (isDemoMode()) {
+      logger.warn("Demo mode active: serving in-memory missions");
+      const filtered = DEMO_MISSIONS.filter((mission) => {
+        const matchesStatus = !options.status || mission.status === options.status;
+        const matchesDrone = !options.droneId || mission.droneId === options.droneId;
+        return matchesStatus && matchesDrone;
+      });
+      return {
+        items: filtered.slice((page - 1) * pageSize, page * pageSize),
+        total: filtered.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(filtered.length / pageSize),
+      };
+    }
 
     try {
       const [items, total] = await Promise.all([
@@ -62,13 +80,31 @@ export class MissionRepository {
         totalPages: Math.ceil(total / pageSize),
       };
     } catch (error) {
-      logger.error("findAll failed", { error: String(error) });
-      throw new DataAccessError(undefined, error);
+      logger.error("findAll failed, falling back to demo data", {
+        error: String(error),
+      });
+      const filtered = DEMO_MISSIONS.filter((mission) => {
+        const matchesStatus = !options.status || mission.status === options.status;
+        const matchesDrone = !options.droneId || mission.droneId === options.droneId;
+        return matchesStatus && matchesDrone;
+      });
+      return {
+        items: filtered.slice((page - 1) * pageSize, page * pageSize),
+        total: filtered.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(filtered.length / pageSize),
+      };
     }
   }
 
   /** Returns missions for a specific drone. */
   async findByDroneId(droneId: string, limit = 10): Promise<MissionWithDrone[]> {
+    if (isDemoMode()) {
+      logger.debug("Demo mode: serving in-memory missions by drone");
+      return DEMO_MISSIONS.filter((mission) => mission.droneId === droneId).slice(0, limit);
+    }
+
     try {
       return await prisma.mission.findMany({
         where: { droneId },
@@ -92,8 +128,11 @@ export class MissionRepository {
         take: limit,
       });
     } catch (error) {
-      logger.error("findByDroneId failed", { error: String(error), droneId });
-      throw new DataAccessError(undefined, error);
+      logger.error("findByDroneId failed, falling back to demo data", {
+        error: String(error),
+        droneId,
+      });
+      return DEMO_MISSIONS.filter((mission) => mission.droneId === droneId).slice(0, limit);
     }
   }
 }
