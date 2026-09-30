@@ -5,6 +5,7 @@ import { NotFoundError } from "@/lib/errors";
 import { createLogger } from "@/lib/logger";
 import { DroneDetailView } from "@/components/drones/DroneDetailView";
 import { ErrorState } from "@/components/ui/ErrorState";
+import type { DroneDTO, MissionWithDroneDTO } from "@/types";
 
 const logger = createLogger("page.drone-detail");
 
@@ -34,21 +35,29 @@ export async function generateMetadata({
 export default async function DroneDetailPage({ params }: DroneDetailPageProps) {
   const { id } = await params;
 
+  let drone: DroneDTO | null = null;
+  let missions: MissionWithDroneDTO[] = [];
+  let loadError: unknown = null;
+
   try {
-    const [drone, missions] = await Promise.all([
+    [drone, missions] = await Promise.all([
       droneService.getDroneById(id),
       missionService.getMissionsByDroneId(id, 5),
     ]);
-
-    return <DroneDetailView drone={drone} missions={missions} />;
   } catch (error) {
-    if (error instanceof NotFoundError) {
-      notFound();
-    }
+    loadError = error;
+  }
 
+  // notFound() must be called outside the try/catch so Next.js can
+  // emit a real 404 status code instead of a 200 fallback page.
+  if (loadError instanceof NotFoundError) {
+    notFound();
+  }
+
+  if (loadError) {
     logger.error("Failed to render drone detail", {
       id,
-      error: error instanceof Error ? error.message : String(error),
+      error: loadError instanceof Error ? loadError.message : String(loadError),
     });
 
     return (
@@ -60,4 +69,6 @@ export default async function DroneDetailPage({ params }: DroneDetailPageProps) 
       </div>
     );
   }
+
+  return <DroneDetailView drone={drone as DroneDTO} missions={missions} />;
 }
