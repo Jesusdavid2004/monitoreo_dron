@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { missionService } from "@/services";
 import { createLogger } from "@/lib/logger";
-import { MISSIONS_REVALIDATE_SECONDS } from "@/lib/constants";
 import { MissionsView } from "@/components/missions/MissionsView";
 import type { MissionWithDroneDTO } from "@/types";
 
@@ -13,7 +12,7 @@ export const metadata: Metadata = {
     "Historial de misiones de la flota de drones. Generación estática incremental (ISR).",
 };
 
-export const revalidate = MISSIONS_REVALIDATE_SECONDS;
+export const revalidate = 60;
 
 /**
  * Missions page.
