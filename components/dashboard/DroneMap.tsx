@@ -1,7 +1,6 @@
 "use client";
 
 import type { DroneSummaryDTO } from "@/types";
-import { cn } from "@/lib/utils";
 
 const WIDTH = 800;
 const HEIGHT = 560;

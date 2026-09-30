@@ -3,6 +3,7 @@ import { missionService } from "@/services";
 import { createLogger } from "@/lib/logger";
 import { MISSIONS_REVALIDATE_SECONDS } from "@/lib/constants";
 import { MissionsView } from "@/components/missions/MissionsView";
+import type { MissionWithDroneDTO } from "@/types";
 
 const logger = createLogger("page.missions");
 
@@ -22,7 +23,7 @@ export const revalidate = MISSIONS_REVALIDATE_SECONDS;
  * self-heals on the next revalidation.
  */
 export default async function MissionsPage() {
-  let missions = [];
+  let missions: MissionWithDroneDTO[] = [];
   let connectionError = false;
   const generatedAt = new Date().toISOString();
 

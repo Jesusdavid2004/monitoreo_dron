@@ -10,6 +10,7 @@ const prisma = new PrismaClient();
 
 const DRONES = [
   {
+    id: "dron-halcon-01",
     name: "Halcon-01",
     model: "DJI Matrice 300 RTK",
     status: DroneStatus.OPERATIONAL,
@@ -20,6 +21,7 @@ const DRONES = [
     speed: 14.5,
   },
   {
+    id: "dron-centinela-02",
     name: "Centinela-02",
     model: "Autel EVO II Pro",
     status: DroneStatus.IN_MISSION,
@@ -30,6 +32,7 @@ const DRONES = [
     speed: 22.0,
   },
   {
+    id: "dron-guardian-03",
     name: "Guardian-03",
     model: "Parrot Anafi USA",
     status: DroneStatus.CHARGING,
@@ -40,6 +43,7 @@ const DRONES = [
     speed: 0,
   },
   {
+    id: "dron-vigia-04",
     name: "Vigia-04",
     model: "DJI Mavic 3 Enterprise",
     status: DroneStatus.MAINTENANCE,
@@ -50,6 +54,7 @@ const DRONES = [
     speed: 0,
   },
   {
+    id: "dron-explorador-05",
     name: "Explorador-05",
     model: "WingtraOne Gen II",
     status: DroneStatus.OPERATIONAL,
@@ -60,6 +65,7 @@ const DRONES = [
     speed: 11.2,
   },
   {
+    id: "dron-aguila-06",
     name: "Aguila-06",
     model: "DJI Phantom 4 RTK",
     status: DroneStatus.OFFLINE,
@@ -73,89 +79,77 @@ const DRONES = [
 
 const MISSIONS = [
   {
+    id: "mision-linea-electrica",
     name: "Inspección de línea eléctrica",
     description: "Vuelo de rutina sobre la línea de alta tensión del sector norte.",
     status: MissionStatus.COMPLETED,
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 26),
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 25),
-    droneIndex: 0,
+    droneId: "dron-halcon-01",
   },
   {
+    id: "mision-patrullaje-nocturno",
     name: "Patrullaje perimetral nocturno",
     description: "Vigilancia del perímetro de la planta industrial.",
     status: MissionStatus.IN_PROGRESS,
     startTime: new Date(Date.now() - 1000 * 60 * 30),
     endTime: null,
-    droneIndex: 1,
+    droneId: "dron-centinela-02",
   },
   {
+    id: "mision-fotogrametria",
     name: "Levantamiento fotogramétrico",
     description: "Mapeo topográfico de 40 hectáreas para planificación agrícola.",
     status: MissionStatus.COMPLETED,
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 50),
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 48),
-    droneIndex: 4,
+    droneId: "dron-explorador-05",
   },
   {
+    id: "mision-paneles-solares",
     name: "Inspección de paneles solares",
     description: "Detección de fallos térmicos en el campo fotovoltaico este.",
     status: MissionStatus.SCHEDULED,
     startTime: new Date(Date.now() + 1000 * 60 * 60 * 4),
     endTime: null,
-    droneIndex: 0,
+    droneId: "dron-halcon-01",
   },
   {
+    id: "mision-busqueda-rescate",
     name: "Búsqueda y rescate (simulación)",
     description: "Ejercicio de búsqueda de personal en zona boscosa.",
     status: MissionStatus.CANCELLED,
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 75),
     endTime: null,
-    droneIndex: 2,
+    droneId: "dron-guardian-03",
   },
   {
+    id: "mision-vigilancia-infra",
     name: "Vigilancia de infraestructura",
     description: "Monitoreo continuo de la estación de transformación.",
     status: MissionStatus.FAILED,
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 30),
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 29),
-    droneIndex: 1,
+    droneId: "dron-centinela-02",
   },
 ];
 
 async function main(): Promise<void> {
   console.log("🌱 Seeding database...");
 
-  const drones = await Promise.all(
-    DRONES.map((drone) =>
-      prisma.drone.upsert({
-        where: { name: drone.name },
-        update: drone,
-        create: drone,
-      })
-    )
-  );
+  for (const drone of DRONES) {
+    await prisma.drone.upsert({
+      where: { id: drone.id },
+      update: drone,
+      create: drone,
+    });
+  }
 
   for (const mission of MISSIONS) {
-    const drone = drones[mission.droneIndex];
     await prisma.mission.upsert({
-      where: { id: `${drone.id}-${mission.name}` },
-      update: {
-        droneId: drone.id,
-        name: mission.name,
-        description: mission.description,
-        status: mission.status,
-        startTime: mission.startTime,
-        endTime: mission.endTime,
-      },
-      create: {
-        id: `${drone.id}-${mission.name}`,
-        droneId: drone.id,
-        name: mission.name,
-        description: mission.description,
-        status: mission.status,
-        startTime: mission.startTime,
-        endTime: mission.endTime,
-      },
+      where: { id: mission.id },
+      update: mission,
+      create: mission,
     });
   }
 
