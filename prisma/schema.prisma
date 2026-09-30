@@ -1,0 +1,75 @@
+// ============================================================
+// Drone Monitoring Platform - Prisma schema
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Drone
+// Represents a physical drone registered in the platform.
+// ---------------------------------------------------------------------------
+model Drone {
+  id          String    @id @default(cuid())
+  name        String
+  model       String
+  status      DroneStatus @default(OPERATIONAL)
+  battery     Int       @default(100)
+  latitude    Float
+  longitude   Float
+  altitude    Float     @default(0)
+  speed       Float     @default(0)
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  missions    Mission[]
+
+  @@index([status])
+  @@index([lastSeenAt])
+}
+
+// ---------------------------------------------------------------------------
+// Mission
+// Represents a flight mission assigned to a drone.
+// ---------------------------------------------------------------------------
+model Mission {
+  id          String       @id @default(cuid())
+  droneId     String
+  name        String
+  description String?
+  status      MissionStatus @default(SCHEDULED)
+  startTime   DateTime
+  endTime     DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  drone       Drone        @relation(fields: [droneId], references: [id], onDelete: Cascade)
+
+  @@index([droneId])
+  @@index([status])
+  @@index([startTime])
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+enum DroneStatus {
+  OPERATIONAL
+  CHARGING
+  MAINTENANCE
+  OFFLINE
+  IN_MISSION
+}
+
+enum MissionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  FAILED
+}
